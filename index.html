@@ -48,16 +48,14 @@ button:disabled{opacity:.6;cursor:default}
 <div class="box">
   <p class="eyebrow">Relitalk Ltd.</p>
   <h1>Расчёт возврата</h1>
-  <p class="lead">Внутренний инструмент службы поддержки. Введите пароль, выданный руководителем.</p>
+  <p class="lead">Внутренний инструмент службы поддержки. Доступ — по входу в портал Relitalk.</p>
 
-  <label for="pw">Пароль</label>
-  <input type="password" id="pw" autocomplete="current-password" autofocus>
-  <button id="go">Открыть</button>
-  <div class="msg" id="msg"></div>
+  <div class="msg wait" id="msg">Проверяем доступ…</div>
 
   <p class="foot">Страница и документы предназначены для внутреннего использования. Не пересылайте ссылку и пароль клиентам.</p>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* Всё внутри IIFE: страница входа не должна оставлять глобальных имён,
    иначе они столкнутся с переменными расшифрованного приложения. */
@@ -66,31 +64,35 @@ button:disabled{opacity:.6;cursor:default}
   var b64 = function(s){ return Uint8Array.from(atob(s), function(c){ return c.charCodeAt(0); }); };
   var el  = function(id){ return document.getElementById(id); };
 
-  async function unlock(){
-    var pw = el('pw').value;
-    if(!pw){ el('msg').className='msg err'; el('msg').textContent='Введите пароль.'; return; }
-    el('go').disabled = true;
-    el('msg').className='msg wait'; el('msg').textContent='Расшифровка…';
-    try{
-      var km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
-      var key = await crypto.subtle.deriveKey(
-        {name:'PBKDF2', salt:b64(DATA.s), iterations:DATA.n, hash:'SHA-256'},
-        km, {name:'AES-GCM', length:256}, false, ['decrypt']);
-      var out = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64(DATA.i)}, key, b64(DATA.c));
-      var html = new TextDecoder().decode(out);
-      /* Разворачиваем приложение в этом же документе: во вложенном фрейме
-         браузер блокирует буфер обмена и печать. Весь код страницы входа
-         находится внутри этой функции, поэтому имена переменных не пересекаются. */
-      document.open(); document.write(html); document.close();
-    }catch(e){
-      el('go').disabled = false;
-      el('msg').className='msg err';
-      el('msg').textContent='Неверный пароль.';
-      el('pw').select();
-    }
+  var SB_URL = "https://jykvdixkgzleknhhplvt.supabase.co";
+  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5a3ZkaXhrZ3psZWtuaGhwbHZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNDQxMjksImV4cCI6MjEwMzkyMDEyOX0.QW6NFVv2oqarUPN_qnnqSc_qlFvFWeKnPO-vZUVAhAo";
+  var PORTAL = "https://relitalkschool.github.io/relitalk-portal/";
+
+  function setMsg(cls, txt){ var m = el('msg'); if(m){ m.className='msg '+cls; m.textContent = txt; } }
+
+  async function decryptAndShow(pw){
+    var km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+    var key = await crypto.subtle.deriveKey(
+      {name:'PBKDF2', salt:b64(DATA.s), iterations:DATA.n, hash:'SHA-256'},
+      km, {name:'AES-GCM', length:256}, false, ['decrypt']);
+    var out = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64(DATA.i)}, key, b64(DATA.c));
+    /* Разворачиваем приложение в этом же документе (буфер/печать блокируются в iframe). */
+    document.open(); document.write(new TextDecoder().decode(out)); document.close();
   }
-  el('go').addEventListener('click', unlock);
-  el('pw').addEventListener('keydown', function(e){ if(e.key === 'Enter') unlock(); });
+
+  async function main(){
+    if(typeof supabase === 'undefined'){ setMsg('err','Нет соединения. Обновите страницу.'); return; }
+    var sb = supabase.createClient(SB_URL, SB_KEY);
+    var s = await sb.auth.getSession();
+    var session = (s && s.data) ? s.data.session : null;
+    if(!session){ setMsg('wait','Требуется вход. Перенаправляем в портал…'); setTimeout(function(){ location.href = PORTAL; }, 1200); return; }
+    /* Ключ отдаётся только авторизованным ролям (RLS в Supabase). */
+    var r = await sb.from('tool_secrets').select('value').eq('key','refund_password').maybeSingle();
+    if(r.error || !r.data){ setMsg('err','Нет доступа к этому инструменту. Обратитесь к руководителю.'); return; }
+    try{ await decryptAndShow(r.data.value); }
+    catch(e){ setMsg('err','Ошибка расшифровки. Сообщите администратору.'); }
+  }
+  main();
 })();
 </script>
 </body>
