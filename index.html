@@ -1,6 +1,341 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8">
-<title>Relitalk — переехали</title><meta name="robots" content="noindex">
-<meta http-equiv="refresh" content="0; url=https://intra.relitalk.com/calc/">
-<script>location.replace("https://intra.relitalk.com/calc/"+(location.hash||""));</script>
-</head><body style="font-family:system-ui;padding:40px;text-align:center">
-Мы переехали на <a href="https://intra.relitalk.com/calc/">https://intra.relitalk.com/calc/</a>.</body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Калькулятор возврата — Relitalk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --violet:#6B4FBB; --rose:#C2557A; --amber:#DE8622; --emerald:#12876A;
+  --ink:#241F45; --ink-2:#3C356B; --muted:#726CA0;
+  --page:#F1EFFA; --card:#FFFFFF; --line:#E2DEF3; --line-2:#CFC8EA; --focus:#4A3AC9;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --shadow:0 1px 2px rgba(36,31,69,.05), 0 8px 24px -12px rgba(36,31,69,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--page);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:520px;margin:0 auto;padding:0 16px 48px}
+
+.hero{background:linear-gradient(135deg,#2E2560 0%,#4A3AA0 55%,#6B4FBB 100%);color:#fff;margin:0 -16px 22px;padding:30px 16px 26px}
+.hero-in{max-width:520px;margin:0 auto;padding:0 16px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#C7BCF2;margin:0 0 10px}
+h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(26px,7vw,36px);letter-spacing:-.025em;line-height:1.05}
+.hero p{margin:10px 0 0;color:#D6CEF5;font-size:13.5px;max-width:46ch}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+.card-pad{padding:20px}
+.legend{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 16px}
+
+.field{margin-bottom:15px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:13.5px;font-weight:500;margin-bottom:6px;color:var(--ink-2)}
+.hint{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:3px;line-height:1.45}
+input[type=date],input[type=number],select{
+  width:100%;padding:12px 13px;border:1.5px solid var(--line-2);border-radius:10px;
+  font-family:var(--mono);font-size:15px;color:var(--ink);background:#FCFBFF;transition:border-color .15s, background .15s}
+input:hover,select:hover{border-color:var(--muted)}
+input:focus,select:focus{outline:none;border-color:var(--focus);background:#fff;box-shadow:0 0 0 3px rgba(74,58,201,.14)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:440px){.row{grid-template-columns:1fr}}
+
+.switches{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.check{display:flex;gap:11px;align-items:flex-start;padding:6px 0}
+.check input{margin:2px 0 0;width:18px;height:18px;flex:none;accent-color:var(--focus);cursor:pointer}
+.check label{margin:0;font-weight:400;font-size:13.5px;cursor:pointer;color:var(--ink)}
+
+/* Результат */
+.result-card{margin-top:16px;overflow:hidden}
+.rc-top{padding:20px 20px 16px;border-bottom:1px solid var(--line)}
+.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:999px;font-weight:500}
+.pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.ok{color:var(--emerald);background:#E4F3EF}
+.pill.warn{color:var(--amber);background:#FCF0E1}
+.pill.neutral{color:var(--muted);background:#EFECFA}
+.big{margin-top:12px}
+.big-lbl{font-size:12.5px;color:var(--muted);margin:0 0 2px}
+.big-val{font-family:var(--display);font-weight:700;font-size:clamp(30px,10vw,44px);letter-spacing:-.03em;line-height:1;color:var(--emerald);font-variant-numeric:tabular-nums}
+.big-val.nil{color:var(--rose)}
+.big-pct{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:6px}
+
+.bar{display:flex;height:34px;border-radius:9px;overflow:hidden;margin:16px 20px 0;background:#EFECFA}
+.seg{transition:width .45s cubic-bezier(.4,0,.2,1);min-width:0}
+.seg.b1{background:var(--violet)}
+.seg.b4{background:var(--emerald)}
+@media (prefers-reduced-motion:reduce){.seg{transition:none}}
+.keys{display:flex;flex-wrap:wrap;gap:6px 16px;margin:12px 20px 18px}
+.key{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:3px;flex:none}
+.dot.b1{background:var(--violet)}.dot.b4{background:var(--emerald)}
+
+.lines{padding:4px 20px 6px;border-top:1px solid var(--line)}
+.line{display:flex;justify-content:space-between;gap:14px;align-items:baseline;padding:9px 0;font-size:13.5px;border-bottom:1px dashed var(--line)}
+.line:last-child{border-bottom:none}
+.line .lbl{color:var(--ink-2)}
+.line .val{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:500}
+.line.off .lbl,.line.off .val{color:var(--muted)}
+.line.dim .lbl,.line.dim .val{color:var(--muted);font-size:12.5px}
+.line.sum{border-top:1.5px solid var(--line-2);border-bottom:none;margin-top:4px;padding-top:12px;font-weight:600}
+.line.sum .val{font-size:15px}
+
+.note{margin:6px 20px 18px;padding:12px 14px;border-radius:10px;background:#F6F4FD;border-left:3px solid var(--line-2);font-size:12.5px;color:var(--muted);line-height:1.55}
+.note strong{color:var(--ink);font-weight:600}
+.note.alert{background:#FCF0E1;border-left-color:var(--amber)}
+
+.btn{display:block;width:calc(100% - 40px);margin:0 20px 20px;padding:14px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--ink-2)}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(74,58,201,.35)}
+.btn.done{background:var(--emerald)}
+
+footer{margin-top:18px;padding:16px 18px;background:#E8E4F6;border-radius:12px;font-size:12px;color:var(--muted);line-height:1.6}
+footer code{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+footer a{color:var(--ink-2)}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-in">
+    <p class="eyebrow">Relitalk · раздел 12 Оферты</p>
+    <h1>Калькулятор возврата</h1>
+    <p>Здесь вы можете сами рассчитать сумму возврата по калькуляции Лицензиара. Расчёт предварительный — окончательное решение принимает Лицензиар (п. 2.14-1.6 Оферты).</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ФОРМА -->
+  <div class="card card-pad">
+    <p class="legend">Данные договора</p>
+
+    <div class="field">
+      <label for="tariff">Тариф</label>
+      <select id="tariff">
+        <option value="m6">РАЗГОВОРНЫЙ УРОВЕНЬ — 6 месяцев, 396 000 ₸</option>
+        <option value="m12" selected>СВОБОДНЫЙ АНГЛИЙСКИЙ — 12 месяцев, 480 000 ₸</option>
+        <option value="m24">В СОВЕРШЕНСТВЕ — 24 месяца, 696 000 ₸</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="paid">Фактически уплачено, ₸
+        <span class="hint">Сумма с учётом вашей скидки. Калькуляция применяется к фактически уплаченной сумме (п. 12.2.2 Оферты).</span>
+      </label>
+      <input type="number" id="paid" min="0" step="1000" value="336000">
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="dActive">Дата активации доступа</label>
+        <input type="date" id="dActive">
+      </div>
+      <div class="field">
+        <label for="dEnd">Дата отказа</label>
+        <input type="date" id="dEnd">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="frozen">Дней заморозки
+        <span class="hint">Раздел 21 Оферты. Дни приостановления в фактический срок доступа не включаются.</span>
+      </label>
+      <input type="number" id="frozen" min="0" step="1" value="0">
+    </div>
+
+    <div class="switches">
+      <div class="check">
+        <input type="checkbox" id="activated" checked>
+        <label for="activated">Доступ активирован, я авторизовался на Платформе</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- РЕЗУЛЬТАТ -->
+  <div class="card result-card">
+    <div class="rc-top">
+      <span id="pill" class="pill neutral">—</span>
+      <div class="big">
+        <p class="big-lbl">К возврату</p>
+        <div class="big-val" id="refund">—</div>
+        <div class="big-pct" id="pct"></div>
+      </div>
+    </div>
+
+    <div class="bar" id="bar">
+      <div class="seg b1" id="s1"></div>
+      <div class="seg b4" id="s4"></div>
+    </div>
+    <div class="keys" id="keys"></div>
+
+    <div class="lines" id="lines"></div>
+
+    <div class="note" id="note"></div>
+
+    <button class="btn" id="copy">Скопировать расчёт</button>
+  </div>
+
+  <footer>
+    Калькуляция: <code>п. 2.14-1.2</code>, удержания — <code>п. 12.2.1</code>, предельный размер — <code>п. 12.2.3</code>,
+    ненулевой остаток — <code>п. 12.2.4</code>, срок доступа и заморозка — <code>п. 2.14-1.4, раздел 21</code>.<br>
+    Комиссия платёжного провайдера в расчёт не входит и удерживается отдельно при документальном подтверждении (п. 12.2.1 Оферты). Результат носит справочный характер; окончательный расчёт производит Лицензиар по разделу 12 Оферты (п. 2.14-1.6). Полный текст Оферты — на <a href="https://relitalk.com/" target="_blank" rel="noopener">relitalk.com</a>.
+  </footer>
+
+</div>
+
+<script>
+const T = {
+  m6 : {name:'РАЗГОВОРНЫЙ УРОВЕНЬ',  months:6,  price:396000},
+  m12: {name:'СВОБОДНЫЙ АНГЛИЙСКИЙ', months:12, price:480000},
+  m24: {name:'В СОВЕРШЕНСТВЕ',       months:24, price:696000},
+};
+/* Калькуляция: накопленный процент удержания от фактически уплаченной суммы.
+   Значение действует со дня из первой колонки и до следующей ступени.
+   Идентична расчёту Лицензиара (внутренний инструмент) — суммы совпадают. */
+const SCHEDULE = {
+  m6 : [[1,18],[14,34],[30,50],[45,60],[60,68],[90,80],[120,89],[150,95],[180,100]],
+  m12: [[1,15],[14,30],[30,45],[45,55],[60,62],[90,72],[120,79],[150,84],[180,88],[240,94],[300,98]],
+  m24: [[1,12],[14,24],[30,36],[45,44],[60,50],[90,58],[120,64],[180,73],[240,80],[300,85],[360,89],[480,95],[600,98]],
+};
+function stepFor(key, day){
+  const s = SCHEDULE[key];
+  let pct = 0, nextDay = null;
+  for (let i=0; i<s.length; i++){
+    if (day >= s[i][0]) { pct = s[i][1]; nextDay = s[i+1] ? s[i+1][0] : null; }
+  }
+  return {pct, nextDay};
+}
+
+const $  = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('ru-RU').replace(/,/g,' ') + ' ₸';
+const iso = d => d.toISOString().slice(0,10);
+const today = new Date();
+$('dActive').value = iso(new Date(today.getTime() - 59*86400000));
+$('dEnd').value    = iso(today);
+
+function parseLocal(s){
+  if(!s) return null;
+  const [y,m,d] = s.split('-').map(Number);
+  return (y&&m&&d) ? new Date(y, m-1, d) : null;
+}
+const ruDate = s => {
+  const d = (s instanceof Date) ? s : parseLocal(s);
+  return (!d || isNaN(d)) ? '—' : d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+};
+
+function calc(){
+  const key = $('tariff').value;
+  const t = T[key];
+  const paid = Math.max(0, +$('paid').value || 0);
+  const activated = $('activated').checked;
+  const frozen = Math.max(0, +$('frozen').value || 0);
+
+  const a = parseLocal($('dActive').value), e = parseLocal($('dEnd').value);
+  const valid = a && e && e >= a;
+  let days = valid ? Math.round((e-a)/86400000) + 1 - frozen : 0;  // день активации = первый день (п. 2.14-1.4)
+  if (days < 0) days = 0;
+
+  const st = activated ? stepFor(key, days) : {pct:0, nextDay:null};
+  let pct = st.pct;
+  let held = paid * pct / 100;
+
+  let capped = false;
+  if (held > paid){ held = paid; capped = true; }          // п. 12.2.3
+
+  let refund = paid - held, floored = false;
+  const termOver = days >= t.months * 30;
+  if (activated && refund <= 0 && !termOver){               // п. 12.2.4 — не может быть нулём
+    refund = paid * 0.02; held = paid - refund; floored = true;
+  }
+
+  const L = [];
+  if (!activated){
+    L.push({lbl:'Доступ не активирован — удержаний нет', off:true});
+  } else {
+    L.push({lbl:'Фактический срок доступа', val:days + ' дн.'});
+    if (frozen) L.push({lbl:'из них заморозка (исключена)', val:frozen + ' дн.', dim:true});
+    L.push({lbl:'Удержание по калькуляции', val:pct + '%'});
+  }
+  $('lines').innerHTML = (valid
+    ? L.map(r => `<div class="line ${r.off?'off':''} ${r.dim?'dim':''}"><span class="lbl">${r.lbl}</span>${r.val!=null?`<span class="val">${r.val}</span>`:''}</div>`).join('')
+      + `<div class="line sum"><span class="lbl">Удержано</span><span class="val">${fmt(held)}</span></div>`
+    : `<div class="line off"><span class="lbl">Укажите дату активации и дату отказа</span></div><div class="line sum"><span class="lbl">Удержано</span><span class="val">—</span></div>`);
+
+  const total = paid || 1;
+  const pc = v => (Math.max(0,v)/total*100).toFixed(2)+'%';
+  $('s1').style.width = valid ? pc(held) : '0%';
+  $('s4').style.width = valid ? pc(refund) : '0%';
+  $('keys').innerHTML = !valid ? '' :
+    ((held>0 ? '<span class="key"><span class="dot b1"></span>Удержано</span>' : '') +
+     (refund>0 ? '<span class="key"><span class="dot b4"></span>К возврату</span>' : ''));
+
+  $('refund').textContent = valid ? fmt(refund) : '—';
+  $('refund').className = 'big-val' + (refund<=0?' nil':'');
+  $('pct').textContent = (valid && paid>0) ? Math.round(refund/paid*100)+'% от уплаченного' : '';
+
+  const pill = $('pill');
+  if (!valid){ pill.className='pill neutral'; pill.textContent='Даты не заданы'; }
+  else if (!activated){ pill.className='pill ok'; pill.textContent='Доступ не активирован'; }
+  else { pill.className='pill warn'; pill.textContent=`День ${days} · удержание ${pct}%`; }
+
+  const note = $('note');
+  note.className = 'note';
+  let msg;
+  if (!valid){
+    note.className='note alert';
+    msg = (!a || !e)
+      ? '<strong>Заполните обе даты.</strong> Нужны дата активации доступа и дата отказа.'
+      : '<strong>Проверьте порядок дат.</strong> Дата отказа не может быть раньше даты активации.';
+  }
+  else if (!activated) msg = 'Возврат в полном объёме: отказ до активации доступа (п. 12.1.3 Оферты).';
+  else if (floored){ note.className='note alert'; msg='<strong>Применён п. 12.2.4 Оферты.</strong> Срок доступа не истёк, поэтому возврат не может быть нулевым.'; }
+  else if (capped){ note.className='note alert'; msg='<strong>Применён п. 12.2.3 Оферты.</strong> Удержания ограничены фактически уплаченной суммой.'; }
+  else if (st.nextDay){
+    const upto = new Date(a); upto.setDate(upto.getDate() + st.nextDay - 1 + frozen);
+    const nx = stepFor(key, st.nextDay).pct;
+    msg = `Текущая ступень — ${pct}%. Следующая (${nx}%) наступит ${ruDate(upto)}.`;
+  }
+  else msg = `Последняя ступень калькуляции — ${pct}%.`;
+  note.innerHTML = msg;
+
+  window.__txt = [
+    'РАСЧЁТ ВОЗВРАТА (предварительный)',
+    `Тариф: ${t.name}, ${t.months} мес`,
+    `Уплачено: ${fmt(paid)}`,
+    `Активация: ${$('dActive').value} · Отказ: ${$('dEnd').value}`,
+    activated ? `Фактический срок доступа: ${days} календарных дней${frozen?` (заморозка ${frozen} дн. исключена)`:''}` : 'Доступ не активирован',
+    activated ? `Удержание по калькуляции: ${pct}%` : '',
+    '',
+    `Удержано: ${fmt(held)}`,
+    `К ВОЗВРАТУ: ${fmt(refund)}`,
+    '',
+    'Расчёт по разделу 12 Оферты, справочный. Комиссия платёжного провайдера не учтена. Окончательный расчёт — у Лицензиара.'
+  ].filter(x=>x!=='').join('\n');
+}
+
+async function copyToClipboard(text){
+  try{ if (navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(text); return true; } }catch(e){}
+  try{
+    const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
+  }catch(e){ return false; }
+}
+$('copy').addEventListener('click', async () => {
+  const b = $('copy'); const ok = await copyToClipboard(window.__txt || '');
+  b.textContent = ok ? 'Скопировано' : 'Не удалось скопировать'; b.classList.toggle('done', ok);
+  setTimeout(()=>{ b.textContent='Скопировать расчёт'; b.classList.remove('done'); }, 1900);
+});
+
+$('tariff').addEventListener('change', ()=>{ $('paid').value = T[$('tariff').value].price; calc(); });
+document.querySelectorAll('input,select').forEach(el=>{ el.addEventListener('input',calc); el.addEventListener('change',calc); });
+calc();
+</script>
+</body>
+</html>
