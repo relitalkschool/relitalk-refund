@@ -239,10 +239,14 @@ function calc(){
   const valid = a && e && e >= a;
   let days = valid ? Math.round((e-a)/86400000) + 1 - frozen : 0;  // день активации = первый день (п. 2.14-1.4)
   if (days < 0) days = 0;
+  // Период отмены (п. 2.16-2): 3 календарных дня со дня активации; по календарю, без вычета
+  // заморозки. В этот срок — возврат в полном объёме, удержания не производятся (п. 12.1.3).
+  const calDays = valid ? Math.round((e-a)/86400000) + 1 : 0;
+  const cooling = activated && valid && calDays <= 3;
 
-  const st = activated ? stepFor(key, days) : {pct:0, nextDay:null};
+  const st = (activated && !cooling) ? stepFor(key, days) : {pct:0, nextDay:null};
   let pct = st.pct;
-  let held = paid * pct / 100;
+  let held = cooling ? 0 : paid * pct / 100;
 
   let capped = false;
   if (held > paid){ held = paid; capped = true; }          // п. 12.2.3
@@ -256,6 +260,8 @@ function calc(){
   const L = [];
   if (!activated){
     L.push({lbl:'Доступ не активирован — удержаний нет', off:true});
+  } else if (cooling){
+    L.push({lbl:'Отказ в течение Периода отмены (3 дн.)', off:true});
   } else {
     L.push({lbl:'Фактический срок доступа', val:days + ' дн.'});
     if (frozen) L.push({lbl:'из них заморозка (исключена)', val:frozen + ' дн.', dim:true});
@@ -281,6 +287,7 @@ function calc(){
   const pill = $('pill');
   if (!valid){ pill.className='pill neutral'; pill.textContent='Даты не заданы'; }
   else if (!activated){ pill.className='pill ok'; pill.textContent='Доступ не активирован'; }
+  else if (cooling){ pill.className='pill ok'; pill.textContent='Период отмены · возврат 100%'; }
   else { pill.className='pill warn'; pill.textContent=`День ${days} · удержание ${pct}%`; }
 
   const note = $('note');
@@ -293,6 +300,7 @@ function calc(){
       : '<strong>Проверьте порядок дат.</strong> Дата отказа не может быть раньше даты активации.';
   }
   else if (!activated) msg = 'Возврат в полном объёме: отказ до активации доступа (п. 12.1.3 Оферты).';
+  else if (cooling) msg = 'Отказ в течение Периода отмены (3 календарных дня с активации): возврат в полном объёме, удержания не производятся (п. 12.1.3, 2.16-2 Оферты).';
   else if (floored){ note.className='note alert'; msg='<strong>Применён п. 12.2.4 Оферты.</strong> Срок доступа не истёк, поэтому возврат не может быть нулевым.'; }
   else if (capped){ note.className='note alert'; msg='<strong>Применён п. 12.2.3 Оферты.</strong> Удержания ограничены фактически уплаченной суммой.'; }
   else if (st.nextDay){
@@ -308,8 +316,8 @@ function calc(){
     `Тариф: ${t.name}, ${t.months} мес`,
     `Уплачено: ${fmt(paid)}`,
     `Активация: ${$('dActive').value} · Отказ: ${$('dEnd').value}`,
-    activated ? `Фактический срок доступа: ${days} календарных дней${frozen?` (заморозка ${frozen} дн. исключена)`:''}` : 'Доступ не активирован',
-    activated ? `Удержание по калькуляции: ${pct}%` : '',
+    !activated ? 'Доступ не активирован' : (cooling ? 'Отказ в течение Периода отмены (3 дня с активации)' : `Фактический срок доступа: ${days} календарных дней${frozen?` (заморозка ${frozen} дн. исключена)`:''}`),
+    (activated && !cooling) ? `Удержание по калькуляции: ${pct}%` : '',
     '',
     `Удержано: ${fmt(held)}`,
     `К ВОЗВРАТУ: ${fmt(refund)}`,
