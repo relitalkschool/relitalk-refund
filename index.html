@@ -141,13 +141,6 @@ footer a{color:var(--ink-2)}
       </div>
     </div>
 
-    <div class="field">
-      <label for="frozen">Дней заморозки
-        <span class="hint">Раздел 21 Оферты. Дни приостановления в фактический срок доступа не включаются.</span>
-      </label>
-      <input type="number" id="frozen" min="0" step="1" value="0">
-    </div>
-
     <div class="switches">
       <div class="check">
         <input type="checkbox" id="activated" checked>
@@ -182,7 +175,7 @@ footer a{color:var(--ink-2)}
 
   <footer>
     Калькуляция: <code>п. 2.14-1.2</code>, удержания — <code>п. 12.2.1</code>, предельный размер — <code>п. 12.2.3</code>,
-    ненулевой остаток — <code>п. 12.2.4</code>, срок доступа и заморозка — <code>п. 2.14-1.4, раздел 21</code>.<br>
+    ненулевой остаток — <code>п. 12.2.4</code>, срок доступа — <code>п. 2.14-1.4</code>.<br>
     Комиссия платёжного провайдера в расчёт не входит и удерживается отдельно при документальном подтверждении (п. 12.2.1 Оферты). Результат носит справочный характер; окончательный расчёт производит Лицензиар по разделу 12 Оферты (п. 2.14-1.6). Полный текст Оферты — на <a href="https://relitalk.com/" target="_blank" rel="noopener">relitalk.com</a>.
   </footer>
 
@@ -233,16 +226,15 @@ function calc(){
   const t = T[key];
   const paid = Math.max(0, +$('paid').value || 0);
   const activated = $('activated').checked;
-  const frozen = Math.max(0, +$('frozen').value || 0);
 
   const a = parseLocal($('dActive').value), e = parseLocal($('dEnd').value);
   const valid = a && e && e >= a;
-  let days = valid ? Math.round((e-a)/86400000) + 1 - frozen : 0;  // день активации = первый день (п. 2.14-1.4)
-  if (days < 0) days = 0;
-  // Период отмены (п. 2.16-2): 3 календарных дня со дня активации; по календарю, без вычета
-  // заморозки. В этот срок — возврат в полном объёме, удержания не производятся (п. 12.1.3).
-  const calDays = valid ? Math.round((e-a)/86400000) + 1 : 0;
-  const cooling = activated && valid && calDays <= 3;
+  // День активации = первый день (п. 2.14-1.4). Считаем по календарю: заморозка на возврат
+  // не влияет — её дни добавляются в конце срока доступа и из фактического срока не вычитаются.
+  const days = valid ? Math.round((e-a)/86400000) + 1 : 0;
+  // Период отмены (п. 2.16-2): 3 календарных дня со дня активации.
+  // В этот срок — возврат в полном объёме, удержания не производятся (п. 12.1.3).
+  const cooling = activated && valid && days <= 3;
 
   const st = (activated && !cooling) ? stepFor(key, days) : {pct:0, nextDay:null};
   let pct = st.pct;
@@ -264,7 +256,6 @@ function calc(){
     L.push({lbl:'Отказ в течение Периода отмены (3 дн.)', off:true});
   } else {
     L.push({lbl:'Фактический срок доступа', val:days + ' дн.'});
-    if (frozen) L.push({lbl:'из них заморозка (исключена)', val:frozen + ' дн.', dim:true});
     L.push({lbl:'Удержание по калькуляции', val:pct + '%'});
   }
   $('lines').innerHTML = (valid
@@ -304,7 +295,7 @@ function calc(){
   else if (floored){ note.className='note alert'; msg='<strong>Применён п. 12.2.4 Оферты.</strong> Срок доступа не истёк, поэтому возврат не может быть нулевым.'; }
   else if (capped){ note.className='note alert'; msg='<strong>Применён п. 12.2.3 Оферты.</strong> Удержания ограничены фактически уплаченной суммой.'; }
   else if (st.nextDay){
-    const upto = new Date(a); upto.setDate(upto.getDate() + st.nextDay - 1 + frozen);
+    const upto = new Date(a); upto.setDate(upto.getDate() + st.nextDay - 1);
     const nx = stepFor(key, st.nextDay).pct;
     msg = `Текущая ступень — ${pct}%. Следующая (${nx}%) наступит ${ruDate(upto)}.`;
   }
@@ -316,7 +307,7 @@ function calc(){
     `Тариф: ${t.name}, ${t.months} мес`,
     `Уплачено: ${fmt(paid)}`,
     `Активация: ${$('dActive').value} · Отказ: ${$('dEnd').value}`,
-    !activated ? 'Доступ не активирован' : (cooling ? 'Отказ в течение Периода отмены (3 дня с активации)' : `Фактический срок доступа: ${days} календарных дней${frozen?` (заморозка ${frozen} дн. исключена)`:''}`),
+    !activated ? 'Доступ не активирован' : (cooling ? 'Отказ в течение Периода отмены (3 дня с активации)' : `Фактический срок доступа: ${days} календарных дней`),
     (activated && !cooling) ? `Удержание по калькуляции: ${pct}%` : '',
     '',
     `Удержано: ${fmt(held)}`,
