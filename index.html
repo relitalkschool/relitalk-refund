@@ -143,7 +143,7 @@ footer a{color:var(--ink-2)}
 
     <div class="field">
       <label for="frozen">Дней заморозки
-        <span class="hint">Раздел 21 Оферты. Дни приостановления в фактический срок доступа не включаются.</span>
+        <span class="hint">Раздел 21 Оферты. Справочно: на расчёт возврата не влияет.</span>
       </label>
       <input type="number" id="frozen" min="0" step="1" value="0">
     </div>
@@ -237,11 +237,11 @@ function calc(){
 
   const a = parseLocal($('dActive').value), e = parseLocal($('dEnd').value);
   const valid = a && e && e >= a;
-  let days = valid ? Math.round((e-a)/86400000) + 1 - frozen : 0;  // день активации = первый день (п. 2.14-1.4)
-  if (days < 0) days = 0;
-  // Период отмены (п. 2.16-2): 3 календарных дня со дня активации; по календарю, без вычета
-  // заморозки. В этот срок — возврат в полном объёме, удержания не производятся (п. 12.1.3).
+  // Фактический срок доступа — полный календарный период от активации до отказа включительно
+  // (день активации — первый). Заморозка (приостановление) на расчёт возврата НЕ влияет.
   const calDays = valid ? Math.round((e-a)/86400000) + 1 : 0;
+  let days = calDays;
+  // Период отмены (п. 2.16-2): первые 3 календарных дня с активации — возврат 100% (п. 12.1.3).
   const cooling = activated && valid && calDays <= 3;
 
   const st = (activated && !cooling) ? stepFor(key, days) : {pct:0, nextDay:null};
@@ -264,7 +264,7 @@ function calc(){
     L.push({lbl:'Отказ в течение Периода отмены (3 дн.)', off:true});
   } else {
     L.push({lbl:'Фактический срок доступа', val:days + ' дн.'});
-    if (frozen) L.push({lbl:'из них заморозка (исключена)', val:frozen + ' дн.', dim:true});
+    if (frozen) L.push({lbl:'заморозка (на расчёт не влияет)', val:frozen + ' дн.', dim:true});
     L.push({lbl:'Удержание по калькуляции', val:pct + '%'});
   }
   $('lines').innerHTML = (valid
@@ -304,7 +304,7 @@ function calc(){
   else if (floored){ note.className='note alert'; msg='<strong>Применён п. 12.2.4 Оферты.</strong> Срок доступа не истёк, поэтому возврат не может быть нулевым.'; }
   else if (capped){ note.className='note alert'; msg='<strong>Применён п. 12.2.3 Оферты.</strong> Удержания ограничены фактически уплаченной суммой.'; }
   else if (st.nextDay){
-    const upto = new Date(a); upto.setDate(upto.getDate() + st.nextDay - 1 + frozen);
+    const upto = new Date(a); upto.setDate(upto.getDate() + st.nextDay - 1);
     const nx = stepFor(key, st.nextDay).pct;
     msg = `Текущая ступень — ${pct}%. Следующая (${nx}%) наступит ${ruDate(upto)}.`;
   }
@@ -316,7 +316,7 @@ function calc(){
     `Тариф: ${t.name}, ${t.months} мес`,
     `Уплачено: ${fmt(paid)}`,
     `Активация: ${$('dActive').value} · Отказ: ${$('dEnd').value}`,
-    !activated ? 'Доступ не активирован' : (cooling ? 'Отказ в течение Периода отмены (3 дня с активации)' : `Фактический срок доступа: ${days} календарных дней${frozen?` (заморозка ${frozen} дн. исключена)`:''}`),
+    !activated ? 'Доступ не активирован' : (cooling ? 'Отказ в течение Периода отмены (3 дня с активации)' : `Фактический срок доступа: ${days} календарных дней`),
     (activated && !cooling) ? `Удержание по калькуляции: ${pct}%` : '',
     '',
     `Удержано: ${fmt(held)}`,
